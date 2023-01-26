@@ -144,32 +144,24 @@ fn s4(input: &str) -> Solution {
             return (a, b);
         }
     }
-    
+
     (None, None)
 }
 
 fn s5(input: &str) -> Solution {
+    let vowels = "aeiou";
+
     let mut q1 = 0;
     let mut q2 = 0;
     for line in input.lines() {
         let number_of_vowels = line
             .chars()
-            .filter(|c| c == &'a' || c == &'e' || c == &'i' || c == &'o' || c == &'u')
+            .filter(|c| vowels.contains(*c))
             .collect::<Vec<char>>()
             .len();
 
-        let mut prechar = None;
-        let mut contains_double_letter = false;
-        for c in line.chars() {
-            if prechar == None {
-                prechar = Some(c);
-                continue;
-            }
-            if prechar.unwrap() == c {
-                contains_double_letter = true;
-            }
-            prechar = Some(c);
-        }
+        let contains_double_letter =
+            line.chars().tuple_windows().filter(|(a, b)| a == b).count() > 0;
 
         let contains_evil = line.contains("ab")
             || line.contains("cd")
