@@ -181,7 +181,32 @@ fn s5(input: &str) -> Solution {
         }
 
         // part two
+        let combinations = line.chars().tuple_windows().collect::<Vec<(char, char)>>();
+
+        let mut contains_pair = false;
+        for c in combinations {
+            let c = format!("{}{}", c.0, c.1);
+            let i = line.find(&c).unwrap();
+
+            let rline = line.replacen(&c, "", 1);
+            let (l, r) = rline.split_at(i);
+            if l.contains(&c) || r.contains(&c) {
+                contains_pair = true;
+                break;
+            }
+        }
+
+        let contains_triplet = line
+            .chars()
+            .tuple_windows()
+            .filter(|(a, _, c)| a == c)
+            .count()
+            > 0;
+
+        if contains_pair && contains_triplet {
+            q2 += 1;
+        }
     }
 
-    (Some(q1), None)
+    (Some(q1), Some(q2))
 }
