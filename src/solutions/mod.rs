@@ -17,10 +17,7 @@ pub fn s(i: i32) -> std::io::Result<Solution> {
 }
 
 fn get_input(num: &str) -> std::io::Result<String> {
-    let mut input_file: String = "input/".to_string();
-    input_file.push_str(num);
-    input_file.push_str(".txt");
-    std::fs::read_to_string(&input_file)
+    std::fs::read_to_string(format!("input/{}.txt", num))
 }
 
 fn s1(input: &str) -> Solution {
@@ -173,10 +170,8 @@ fn s5(input: &str) -> Solution {
         }
 
         // part two
-        let combinations = line.chars().tuple_windows().collect::<Vec<(char, char)>>();
-
         let mut contains_pair = false;
-        for c in combinations {
+        for c in line.chars().tuple_windows::<(char, char)>() {
             let c = format!("{}{}", c.0, c.1);
             let i = line.find(&c).unwrap();
 
