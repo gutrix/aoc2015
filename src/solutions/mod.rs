@@ -1,5 +1,9 @@
 use itertools::Itertools;
-use std::{cmp::min, collections::HashSet};
+use std::{
+    cmp::{max, min},
+    collections::HashSet,
+    str::FromStr,
+};
 
 pub type Solution = (Option<i32>, Option<i32>);
 
@@ -11,6 +15,7 @@ pub fn s(i: i32) -> std::io::Result<Solution> {
         3 => s3(input.as_str()),
         4 => s4(input.as_str()),
         5 => s5(input.as_str()),
+        6 => s6(input.as_str()),
         _ => (None, None),
     };
     Ok(solution)
@@ -196,4 +201,100 @@ fn s5(input: &str) -> Solution {
     }
 
     (Some(q1), Some(q2))
+}
+
+fn s6(input: &str) -> Solution {
+    #[derive(PartialEq, Debug)]
+    struct Vec2u {
+        x: usize,
+        y: usize,
+    }
+
+    #[derive(PartialEq, Debug)]
+    struct Coords {
+        p1: Vec2u,
+        p2: Vec2u,
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct ParseCoordError;
+
+    impl FromStr for Coords {
+        type Err = ParseCoordError;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let cs: Vec<&str> = s.split(",").collect();
+            let (x1, y1, x2, y2) = cs
+                .iter()
+                .map(|x| x.parse::<usize>().unwrap())
+                .collect_tuple()
+                .ok_or(ParseCoordError)?;
+            Ok(Coords {
+                p1: Vec2u { x: x1, y: y1 },
+                p2: Vec2u { x: x2, y: y2 },
+            })
+        }
+    }
+
+    #[derive(PartialEq, Debug)]
+    enum Command {
+        Toggle(Coords),
+        TurnOn(Coords),
+        TurnOff(Coords),
+    }
+
+    let mut lights1 = vec![false; 1000000];
+    // let mut lights2 = Box::new([Box:::new([0; 1000]); 1000]);
+    let mut lights2 = vec![0; 1000000];
+
+    fn apply<T>(lights: &mut [T], c: &Coords, f: fn(T) -> T)
+    where
+        T: Copy,
+    {
+        for x in c.p1.x..=c.p2.x {
+            for y in c.p1.y..=c.p2.y {
+                let i = x * 1000 + y;
+                lights[i] = f(lights[i]);
+            }
+        }
+    }
+
+    for line in input.lines() {
+        // cleaned input to be more suitable
+        let line = line.replace(" through ", ",");
+
+        // parse input into command and numbers
+        let mut words: Vec<&str> = line.split(" ").collect();
+        words.reverse();
+
+        let command = match words.pop().unwrap() {
+            "toggle" => Command::Toggle(Coords::from_str(words.pop().unwrap()).unwrap()),
+            "turn" => match words.pop().unwrap() {
+                "on" => Command::TurnOn(Coords::from_str(words.pop().unwrap()).unwrap()),
+                "off" => Command::TurnOff(Coords::from_str(words.pop().unwrap()).unwrap()),
+                e => panic!("Unknown command {}", e),
+            },
+            e => panic!("Unknown command {}", e),
+        };
+
+        match &command {
+            Command::Toggle(c) => apply(&mut lights1, c, |b: bool| !b),
+            Command::TurnOff(c) => apply(&mut lights1, c, |_| false),
+            Command::TurnOn(c) => apply(&mut lights1, c, |_| true),
+        }
+
+        match &command {
+            Command::Toggle(c) => apply(&mut lights2, c, |i| i + 2),
+            Command::TurnOff(c) => apply(&mut lights2, c, |i| {
+                let i = i - 1;
+                max(i, 0)
+            }),
+            Command::TurnOn(c) => apply(&mut lights2, c, |i| i + 1),
+        }
+    }
+
+    let n_lights = lights1.iter().filter(|b| **b).count() as i32;
+    let brightness = lights2.iter().sum();
+
+    (Some(n_lights), Some(brightness))
 }
