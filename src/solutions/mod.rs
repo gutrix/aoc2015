@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::{
     cmp::{max, min},
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     str::FromStr,
 };
 
@@ -16,6 +16,7 @@ pub fn s(i: i32) -> std::io::Result<Solution> {
         4 => s4(input.as_str()),
         5 => s5(input.as_str()),
         6 => s6(input.as_str()),
+        7 => s7(input.as_str()),
         _ => (None, None),
     };
     Ok(solution)
@@ -293,4 +294,235 @@ fn s6(input: &str) -> Solution {
     let brightness = lights2.iter().sum();
 
     (Some(n_lights), Some(brightness))
+}
+
+fn s7(input: &str) -> Solution {
+    // For operations that can take both line or value
+    #[derive(Debug)]
+    enum Value {
+        Value(i32),
+        Line(String),
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct ParseValueError;
+
+    impl FromStr for Value {
+        type Err = ParseValueError;
+        fn from_str(input: &str) -> Result<Self, <Self as FromStr>::Err> {
+            if let Ok(v) = input.parse() {
+                return Ok(Value::Value(v));
+            } else {
+                return Ok(Value::Line(input.to_string()));
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    enum Operation {
+        SET {
+            line: String,
+            value: Value,
+        },
+        AND {
+            line: String,
+            left: Value,
+            right: String,
+        },
+        OR {
+            line: String,
+            left: String,
+            right: String,
+        },
+        LSHIFT {
+            line: String,
+            input: String,
+            value: i32,
+        },
+        RSHIFT {
+            line: String,
+            input: String,
+            value: i32,
+        },
+        NOT {
+            line: String,
+            input: String,
+        },
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct ParseOperationError;
+
+    impl FromStr for Operation {
+        type Err = ParseOperationError;
+        fn from_str(input: &str) -> Result<Self, <Self as FromStr>::Err> {
+            let input = input.to_string();
+            let mut words: Vec<&str> = input.split(" ").collect();
+            words.reverse();
+
+            match words.pop().unwrap() {
+                "NOT" => {
+                    let (line, _, input) = words.iter().collect_tuple().unwrap();
+                    Ok(Operation::NOT {
+                        line: line.to_string(),
+                        input: input.to_string(),
+                    })
+                }
+                left => match words.pop().unwrap() {
+                    "->" => {
+                        let line = words.pop().unwrap();
+                        Ok(Operation::SET {
+                            line: line.to_string(),
+                            value: Value::from_str(left).unwrap(),
+                        })
+                    }
+                    "AND" => {
+                        let (line, _, right) = words.iter().collect_tuple().unwrap();
+                        Ok(Operation::AND {
+                            line: line.to_string(),
+                            left: Value::from_str(left).unwrap(),
+                            right: right.to_string(),
+                        })
+                    }
+                    "OR" => {
+                        let (line, _, right) = words.iter().collect_tuple().unwrap();
+                        Ok(Operation::OR {
+                            line: line.to_string(),
+                            left: left.to_string(),
+                            right: right.to_string(),
+                        })
+                    }
+                    "LSHIFT" => {
+                        let (line, _, right) = words.iter().collect_tuple().unwrap();
+                        Ok(Operation::LSHIFT {
+                            line: line.to_string(),
+                            input: left.to_string(),
+                            value: right.parse().unwrap(),
+                        })
+                    }
+                    "RSHIFT" => {
+                        let (line, _, right) = words.iter().collect_tuple().unwrap();
+                        Ok(Operation::RSHIFT {
+                            line: line.to_string(),
+                            input: left.to_string(),
+                            value: right.parse().unwrap(),
+                        })
+                    }
+                    _ => {
+                        todo!();
+                    }
+                },
+            }
+        }
+    }
+
+    let operations = input
+        .lines()
+        .map(|l| Operation::from_str(l).unwrap())
+        .collect_vec();
+
+    // A little... bad. Loop over an vec& of operators, if they are used they dropped.
+    // a tree of operators would be faster to operate over, but I'm not a genious.
+    fn operate(operations: Vec<Operation>) -> (Vec<Operation>, HashMap<String, i32>) {
+        let mut ops = operations.iter().collect_vec();
+        let mut map: HashMap<String, i32> = HashMap::new();
+
+        loop {
+            let mut dump = Vec::new();
+
+            for op in ops {
+                match op {
+                    Operation::SET { line, value } => {
+                        let v = match value {
+                            Value::Value(v) => Some(v),
+                            Value::Line(input) => map.get(input),
+                        };
+
+                        if let Some(v) = v {
+                            map.insert(line.clone(), *v);
+                        } else {
+                            dump.push(op);
+                        }
+                    }
+
+                    Operation::NOT { line, input } => {
+                        if let Some(input) = map.get(input) {
+                            map.insert(line.clone(), !*input);
+                        } else {
+                            dump.push(op);
+                        }
+                    }
+
+                    Operation::LSHIFT { line, input, value } => {
+                        if let Some(input) = map.get(input) {
+                            map.insert(line.clone(), input << value);
+                        } else {
+                            dump.push(op);
+                        }
+                    }
+
+                    Operation::RSHIFT { line, input, value } => {
+                        if let Some(input) = map.get(input) {
+                            map.insert(line.clone(), input >> value);
+                        } else {
+                            dump.push(op);
+                        }
+                    }
+                    Operation::OR { line, left, right } => {
+                        if let (Some(left), Some(right)) = (map.get(left), map.get(right)) {
+                            map.insert(line.clone(), left | right);
+                        } else {
+                            dump.push(op);
+                        }
+                    }
+                    Operation::AND { line, left, right } => {
+                        let left = match left {
+                            Value::Value(v) => Some(v),
+                            Value::Line(l) => map.get(l),
+                        };
+
+                        if let (Some(left), Some(right)) = (left, map.get(right)) {
+                            map.insert(line.clone(), left & right);
+                        } else {
+                            dump.push(op);
+                        }
+                    }
+                };
+            }
+
+            if dump.is_empty() {
+                break;
+            } else {
+                ops = dump;
+            }
+        }
+        (operations, map)
+    }
+
+    let (mut operations, map) = operate(operations);
+    let a = "a".to_string();
+    let a1 = map.get(&a).unwrap();
+
+    // set b's input to a
+    for op in operations.iter_mut() {
+        match op {
+            Operation::SET { line, value } => {
+                if line == "b" {
+                    match value {
+                        Value::Value(v) => {
+                            *v = *a1;
+                            break;
+                        }
+                        _ => todo!(),
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let (_, map) = operate(operations);
+    let a2 = map.get(&a).unwrap();
+
+    (Some(*a1), Some(*a2))
 }
