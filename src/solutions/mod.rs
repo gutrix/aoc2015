@@ -421,8 +421,8 @@ fn s7(input: &str) -> Solution {
         .map(|l| Operation::from_str(l).unwrap())
         .collect_vec();
 
-    // A little... bad. Loop over an vec& of operators, if they are used they dropped.
-    // a tree of operators would be faster to operate over, but I'm not a genious.
+    // A little... bad. Loop over an vec of &operators, if they are unused they're re-added to the vec after.
+    // to be reapplied. A tree of operators would be faster to operate over, but I'm not a genius.
     fn operate(operations: Vec<Operation>) -> (Vec<Operation>, HashMap<String, i32>) {
         let mut ops = operations.iter().collect_vec();
         let mut map: HashMap<String, i32> = HashMap::new();
