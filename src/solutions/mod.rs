@@ -244,7 +244,6 @@ fn s6(input: &str) -> Solution {
     }
 
     let mut lights1 = vec![false; 1000000];
-    // let mut lights2 = Box::new([Box:::new([0; 1000]); 1000]);
     let mut lights2 = vec![0; 1000000];
 
     fn apply<T>(lights: &mut [T], c: &Coords, f: fn(T) -> T)
@@ -285,10 +284,7 @@ fn s6(input: &str) -> Solution {
 
         match &command {
             Command::Toggle(c) => apply(&mut lights2, c, |i| i + 2),
-            Command::TurnOff(c) => apply(&mut lights2, c, |i| {
-                let i = i - 1;
-                max(i, 0)
-            }),
+            Command::TurnOff(c) => apply(&mut lights2, c, |i| max(i - 1, 0)),
             Command::TurnOn(c) => apply(&mut lights2, c, |i| i + 1),
         }
     }
