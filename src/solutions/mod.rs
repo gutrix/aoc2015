@@ -48,7 +48,7 @@ fn s2(input: &str) -> Solution {
 
     // parse each line
     let mut perimeter: i64 = 0;
-    let mut ribben_length: i64 = 0;
+    let mut ribbon_length: i64 = 0;
     for line in lines {
         let tokens: Vec<&str> = line.split('x').collect();
         if tokens.len() != 3 {
@@ -74,12 +74,12 @@ fn s2(input: &str) -> Solution {
 
         let smallest_loop = 2 * tokens[0] + 2 * tokens[1];
         let volume = l * w * h;
-        ribben_length += smallest_loop + volume;
+        ribbon_length += smallest_loop + volume;
     }
 
     (
         Some(perimeter.try_into().unwrap()),
-        Some(ribben_length.try_into().unwrap()),
+        Some(ribbon_length.try_into().unwrap()),
     )
 }
 
@@ -100,22 +100,22 @@ fn s3(input: &str) -> Solution {
 
     let mut alone_santa = (0, 0);
     let mut santa = (0, 0);
-    let mut robo = (0, 0);
+    let mut robot = (0, 0);
     let mut real_santa_year = true;
 
-    // Treverse
+    // Traverse
     for c in input.chars() {
         // first year, only santa.
         alone_santa = mov(c, alone_santa);
         first.insert(alone_santa);
 
-        // second year, santa and robo santa
+        // second year, santa and robot santa
         if real_santa_year {
             santa = mov(c, santa);
             second.insert(santa);
         } else {
-            robo = mov(c, robo);
-            second.insert(robo);
+            robot = mov(c, robot);
+            second.insert(robot);
         }
 
         real_santa_year = !real_santa_year;
@@ -181,8 +181,8 @@ fn s5(input: &str) -> Solution {
             let c = format!("{}{}", c.0, c.1);
             let i = line.find(&c).unwrap();
 
-            let rline = line.replacen(&c, "", 1);
-            let (l, r) = rline.split_at(i);
+            let line = line.replacen(&c, "", 1);
+            let (l, r) = line.split_at(i);
             if l.contains(&c) || r.contains(&c) {
                 contains_pair = true;
                 break;
